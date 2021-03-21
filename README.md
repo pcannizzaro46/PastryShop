@@ -14,7 +14,4 @@ Per testare l’applicazione:
 •	Aprire il file PastryShop.sln;
 •	Eseguire, se necessario, l’eventuale ripristino di pacchetti NuGet;
 •	Impostare, se necessario, il progetto PastryShop.Web come progetto di avvio;
-•	Premere F5 per avviarla;
-•	Usare le seguenti credenziali già esistenti per accedere al backend (oppure registrarsi come nuovo utente):
-  o User: piero.cannizzaro@gmail.com
-  o	Pwd: Abc_123
+•	Premere F5 per avviarla.
