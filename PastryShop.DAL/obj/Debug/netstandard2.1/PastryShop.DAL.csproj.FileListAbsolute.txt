@@ -1,0 +1,9 @@
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\bin\Debug\netstandard2.1\PastryShop.DAL.deps.json
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\bin\Debug\netstandard2.1\PastryShop.DAL.dll
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\bin\Debug\netstandard2.1\PastryShop.DAL.pdb
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.csprojAssemblyReference.cache
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.AssemblyInfoInputs.cache
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.AssemblyInfo.cs
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.csproj.CoreCompileInputs.cache
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.dll
+C:\Users\pcannizzaro\source\repos\Pastry1\PastryShop.DAL\obj\Debug\netstandard2.1\PastryShop.DAL.pdb
