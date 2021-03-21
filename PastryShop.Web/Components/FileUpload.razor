@@ -1,0 +1,70 @@
+﻿@page "/fileupload"
+@using System.IO
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
+
+<h1>Blazor Server File Upload</h1>
+
+<h3>@Message</h3>
+
+<form @onsubmit="OnSubmit">
+    <InputFile OnChange="OnInputFileChange" multiple />
+    <br /><br />
+    <button type="submit">Upload Selected File(s)</button>
+</form>
+
+@code {
+    string Message = "No file(s) selected";
+    IReadOnlyList<IBrowserFile> selectedFiles;
+
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles(1);
+        Message = $"{selectedFiles.Count} file(s) selected";
+        this.StateHasChanged();
+    }
+
+    private async void OnSubmit()
+    {
+        foreach (var file in selectedFiles)
+        {
+            string newFileName = string.Empty;
+            string newFileExt = string.Empty;
+            int lastDot = -1;
+
+            string basePath = $"{env.WebRootPath}\\Images\\Desserts\\"; //TODO: ricavare percorso da appsettings.json
+            string fullPath = string.Empty;
+
+            if ((lastDot = file.Name.LastIndexOfAny(new char[] { '.' })) > 0)
+                newFileExt = string.Concat(file.Name.TakeLast(file.Name.Length - (lastDot + 1)));
+
+            while (true)
+            {
+                newFileName = Guid.NewGuid().ToString();
+
+                if (newFileExt.Length > 0)
+                    newFileName = $"{newFileName}.{newFileExt}";
+
+                fullPath = $"{basePath}{newFileName}";
+
+                if (!File.Exists(fullPath))
+                    break;
+            }
+
+            try
+            {
+                Stream stream = file.OpenReadStream();
+
+                FileStream fs = File.Create(fullPath);
+                await stream.CopyToAsync(fs);
+                stream.Close();
+                fs.Close();
+            }
+            catch (Exception ex)
+            {
+                Message += $"{ex.Message}<br />";
+            }
+        }
+        Message += $"{selectedFiles.Count} file(s) uploaded on server";
+        this.StateHasChanged();
+    }
+}

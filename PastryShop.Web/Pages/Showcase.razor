@@ -1,0 +1,51 @@
+﻿@page "/"
+@inject IPastryManagementService PastryManagementService
+
+<h3>Vetrina</h3>
+
+Ci sono @_showcaseItems.Count dolci in vendita
+
+<br/>
+
+@*<div class="row row-cols-3 row-cols-md-3 g-4">*@
+<div class="container-fluid">
+    <div class="row row-cols-auto">
+        @foreach (var showcaseItem in _showcaseItems)
+        {
+            <div class="col">
+               <DessertCard showcaseItem="@showcaseItem" stateHasChangedCallback="stateHasChangedCallback" />
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+
+    List<ShowcaseItemModel> _showcaseItems;
+
+    [CascadingParameter] 
+    Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    AuthenticationState authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateTask;
+        populateShowcase();
+    }
+
+    void populateShowcase()
+    {
+        _showcaseItems = authState.User.Identity != null && authState.User.Identity.IsAuthenticated
+            ? PastryManagementService.GetAllShowcaseItems(true).ToList()
+            : PastryManagementService.GetShowcaseItemsOnSale(true).ToList();
+    }
+
+    void stateHasChangedCallback()
+    {
+        populateShowcase();
+        this.StateHasChanged();
+    }
+
+}

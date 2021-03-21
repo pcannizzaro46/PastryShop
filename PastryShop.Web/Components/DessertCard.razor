@@ -1,0 +1,116 @@
+﻿@inject IPastryManagementService PastryManagementService
+
+<div class="card">
+    <AuthorizeView>
+        <div class="card-header @(ShowcaseItem.IsExpired ? "bg-danger" : "")">
+            @(ShowcaseItem.IsExpired ? "SCADUTO" : "SCADE")&nbsp;@ShowcaseItem.ExpirationDate.ToLocalTime().ToLongDateString() alle @ShowcaseItem.ExpirationDate.ToLocalTime().ToLongTimeString()
+        </div>
+    </AuthorizeView>
+
+    <img src="@ShowcaseItem.Dessert.ImageFullPath" class="card-img-top" style="height: 275px;" alt="immagine non trovata">
+
+    <div class="card-body">
+
+        <h5 class="card-title text-truncate">
+            @ShowcaseItem.Dessert.Name
+        </h5>
+
+        @if (ShowcaseItem.Dessert.Ingredients.Any())
+        {
+            <p class="card-text h-25">
+                <ul>
+                    @foreach (var ingredient in ShowcaseItem.Dessert.Ingredients.Take(3))
+                    {
+                        <li class="text-truncate">
+                            @ingredient.UM @ingredient.Quantity.ToString("N0") di @ingredient.Name
+                        </li>
+                    }
+                </ul>
+                <br />
+            </p>
+        }
+
+        <p class="card-text">
+            Euro @ShowcaseItem.SellPrice.ToString("N2")&nbsp;
+            @if (ShowcaseItem.Discount > 0)
+            {
+                <span class="badge bg-warning text-dark">-@(ShowcaseItem.Discount.ToString("N0"))%</span>
+                <span class="fw-light">
+                    <del>@ShowcaseItem.OriginalPrice.ToString("N2")</del>
+                </span>
+            }
+        </p>
+
+
+
+        <p class="card-text text-sm-left">
+            Preparata il: @ShowcaseItem.CreateDate.ToLocalTime().ToLongDateString() alle @ShowcaseItem.CreateDate.ToLocalTime().ToLongTimeString()
+        </p>
+
+
+
+    </div>
+
+    <div class="card-footer">
+        <AuthorizeView>
+            <Authorized>
+                <button type="button" class="btn btn-danger" @onclick="@DeleteShowCaseItem">Elimina</button>
+            </Authorized>
+            <NotAuthorized>
+
+                @if (ShowcaseItem.SellPrice > 0)
+                {
+                    <p class="">
+                        <button type="button" class="btn btn-primary" @onclick="@BuyShowCaseItem">Acquista</button>
+                    </p>
+                }
+
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@code {
+
+    string ingredientsToolTip = string.Empty;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [Parameter]
+    public ShowcaseItemModel ShowcaseItem { get; set; }
+
+    [Parameter]
+    public Action stateHasChangedCallback { get; set; }
+
+    private async void DeleteShowCaseItem()
+    {
+        string Message = "Eliminare il dolce dalla vetrina?";
+
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(Message), Message);
+
+        var deleteModal = Modal.Show<ModalMessage>("Conferma", parameters);
+        var result = await deleteModal.Result;
+
+        if (result.Cancelled) return;
+
+
+        await PastryManagementService.DeleteShowCaseItem(ShowcaseItem);
+        await PastryManagementService.SaveAsync();
+
+        stateHasChangedCallback();
+    }
+
+    private async Task BuyShowCaseItem()
+    {
+        string Message = "Funzione non implementata";
+
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(Message), Message);
+
+        var deleteModal = Modal.Show<ModalMessage>("Avviso", parameters);
+        var result = await deleteModal.Result;
+    }
+
+}

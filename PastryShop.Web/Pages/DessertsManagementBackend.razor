@@ -1,0 +1,141 @@
+﻿@page "/dessertsmanagementbackend"
+@using PastryShop.DAL.Models
+@inject IPastryManagementService PastryManagementService
+@inject NavigationManager NavigationManager
+
+<AuthorizeView>
+    <Authorized>
+        <h3>
+            Gestione dolci
+            <button type="button" class="btn btn-light " @onclick="@AddDessert" title="Aggiungi dolce">
+                <span class="oi oi-plus mr-1"></span>Aggiungi
+            </button>
+        </h3>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Immagine</th>
+                    <th scope="col">Id</th>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col">Prezzo (€)</th>
+                    <th scope="col">Utente</th>
+                    <th scope="col">Data cre.</th>
+                    <th scope="col">In vendita</th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dessert in _desserts)
+                {
+                    <tr>
+                        <td class="align-middle"><img src="@dessert.ImageFullPath" width="100" class="img-thumbnail" alt="..."></td>
+                        <td class="align-middle">@dessert.DessertId</td>
+                        <td class="align-middle">@dessert.Name</td>
+                        <td class="align-middle">@dessert.Price.ToString("N2")</td>
+                        <td class="align-middle">@dessert.UserCreate</td>
+                        <td class="align-middle">@dessert.CreateDate</td>
+                        <td class="align-middle">@PastryManagementService.GetShowcaseItemsOnSale(false).Count(x => x.Dessert.DessertId == dessert.DessertId)</td>
+                        <td width="100" class="align-middle">
+                            <button type="button" class="btn btn-primary" @onclick="@(() => SellDessert(dessert))">Vendi</button>
+                        </td>
+                        <td width="100" class="align-middle">
+                            <button type="button" class="btn btn-info" @onclick="@(() => EditDessert(dessert))">Modifica</button>
+                        </td>
+                        <td width="100" class="align-middle"><button type="button" class="btn btn-danger" @onclick="@(() => DeleteDessert(dessert))">Elimina</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Authorized>
+    <NotAuthorized>
+        Necessaria autenticazione
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    [CascadingParameter] Task<AuthenticationState> AuthenticationStateTask { get; set; }
+    AuthenticationState authState;
+
+    List<DessertModel> _desserts = new List<DessertModel>();
+
+    [CascadingParameter] public IModalService Modal { get; set; }
+
+    protected override async void OnInitialized()
+    {
+        authState = await AuthenticationStateTask;
+        _desserts = PastryManagementService.GetDesserts(false).ToList();
+    }
+
+    async void DeleteDessert(DessertModel dessert)
+    {
+        string Message = "Eliminare il dolce? (Tutti i dolci in vendita verranno rimossi dalla vetrina)";
+
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(Message), Message);
+
+        var deleteModal = Modal.Show<ModalMessage>("Conferma", parameters);
+        var result = await deleteModal.Result;
+
+        if (result.Cancelled) return;
+
+        PastryManagementService.DeleteDessert(dessert);
+        await PastryManagementService.SaveAsync();
+
+        _desserts.Remove(dessert);
+
+        this.StateHasChanged();
+    }
+
+    async void SellDessert(DessertModel dessert)
+    {
+        string Message = "Mettere in vendita il dolce?";
+
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(Message), Message);
+
+        var deleteModal = Modal.Show<ModalMessage>("Conferma", parameters);
+        var result = await deleteModal.Result;
+
+        if (result.Cancelled) return;
+
+        PastryManagementService.SellDessert(dessert);
+        await PastryManagementService.SaveAsync();
+
+        this.StateHasChanged();
+
+    }
+
+    private async Task AddDessert()
+    {
+        var newDessertModel = new DessertModel(new Dessert() { UserCreate = authState.User.Identity.Name, CreateDate = DateTime.Now }); //TODO: UserCreate = <utente loggato>
+
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(BackendDessertForm.Dessert), newDessertModel);
+
+        var editingModal = Modal.Show<BackendDessertForm>("Crea dolce", parameters);
+        var result = await editingModal.Result;
+        if (result.Cancelled) return;
+
+        //PastryManagementService.AddDessert(newDessertModel);
+        //await PastryManagementService.SaveAsync();
+        _desserts.Add(newDessertModel);
+    }
+
+    private async Task EditDessert(DessertModel dessert)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(nameof(BackendDessertForm.Dessert), dessert);
+
+        var editingModal = Modal.Show<BackendDessertForm>("Modifica dolce", parameters);
+
+        var result = await editingModal.Result;
+        if (result.Cancelled) return;
+
+
+        //PastryManagementService.UpdateDessert(dessert);
+        //await PastryManagementService.SaveAsync();
+
+        this.StateHasChanged();
+    }
+}

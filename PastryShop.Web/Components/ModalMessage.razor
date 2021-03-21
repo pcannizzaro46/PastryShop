@@ -1,0 +1,30 @@
+﻿<p>
+    @Message
+</p>
+<br />
+<AuthorizeView>
+    <Authorized>
+        <button type="button" class="btn btn-primary" @onclick="onYesClicked">Si</button>
+        <button type="reset" @onclick="ModalInstance.CancelAsync" class="btn btn-secondary">Annulla</button>
+    </Authorized>
+</AuthorizeView>
+@code {
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; }
+
+    [CascadingParameter] ModalParameters Parameters { get; set; }
+
+    [Parameter]
+    public string Message { get; set; }
+
+    protected override void OnInitialized()
+    {
+        //Message = Parameters.Get<string>("Message");
+    }
+
+    async void onYesClicked()
+    {
+        await ModalInstance.CloseAsync(ModalResult.Ok(Message));
+    }
+}

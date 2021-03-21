@@ -1,0 +1,269 @@
+﻿@inject IPastryManagementService PastryManagementService
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
+@inject IConfiguration Configuration
+@using Microsoft.Extensions.Configuration
+@using System.IO
+@using PastryShop.DAL.Models
+
+<div hidden="@hideFail" class="alert alert-danger" role="alert">
+    Salvataggio dati fallito!&nbsp;@messages
+</div>
+
+<EditForm EditContext="@editContext" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="container">
+
+        <div class="row">
+            <div class="col-6">
+                <label for="Name" class="form-label">Descrizione</label>
+                <InputText @bind-Value="Dessert.Name" class="form-control" id="Name" placeholder="Torta della nonna, Muffin..." DisplayName="Descrizione" />
+            </div>
+        </div>
+
+        <br />
+
+        <div class="row">
+            <div class="col-2">
+                <label for="Price" class="form-label">Prezzo</label>
+                <InputNumber for="Price" class="form-control" @bind-Value="Dessert.Price" DisplayName="Prezzo" />
+            </div>
+            <div class="col-2">
+                <label for="inputUserCreate" class="form-label">Creato da</label>
+                <input type="text" class="form-control" id="inputUserCreate" value="@Dessert.UserCreate" disabled>
+            </div>
+            <div class="col-2">
+                <label for="inputCreateDate" class="form-label">Creato il</label>
+                <input type="text" class="form-control" id="inputCreateDate" value="@Dessert.CreateDate" disabled>
+            </div>
+        </div>
+
+        <br />
+
+        <div class="row">
+            <div class="col-4">
+                <label for="formFile" class="form-label">Immagine rappresentativa</label>
+                <InputFile OnChange="OnInputFileChange"></InputFile>
+                <br />
+                @if (!string.IsNullOrWhiteSpace(Dessert.ImageFullPath))
+                {
+                    <img src="@imgSrc" class="img-thumbnail" alt="..." style="height:200px; width:200px">
+                }
+                else
+                {
+                    <label><i>Nessuna immagine</i></label>
+                }
+            </div>
+        </div>
+    </div>
+
+    <br />
+    <div class="container py-3">
+        <div class="row">
+            <div class="col-6">
+                <h3>
+                    Ingredienti&nbsp;
+                    <button type="button" class="btn btn-light" @onclick="@AddEmptyIngredient" data-toggle="tooltip" data-placement="left" title="Aggiungi ingrediente">
+                        <span class="oi oi-plus mr-1"></span>Aggiungi
+                    </button>
+                </h3>
+            </div>
+        </div>
+
+        @foreach (var ingredientModel in Dessert.Ingredients)
+        {
+            <div class="row">
+                <div class="col-1">
+                    <button type="button" class="btn btn-danger oi oi-circle-x" @onclick="@(() => DeleteIngredient(ingredientModel))" data-toggle="tooltip" data-placement="left" title="Elimina ingrediente"></button>
+                </div>
+                <div class="col-4">
+                    <InputText type="text" class="form-control" id="@($"ingredient{ingredientModel.Id.ToString()}")" placeholder="Nuovo ingrediente..." @bind-Value="ingredientModel.Name" />
+                </div>
+                <div class="col-2">
+                    <InputText type="text" class="form-control" id="@($"ingredientUM{ingredientModel.Id.ToString()}")" placeholder="NR" @bind-Value="ingredientModel.UM" />
+                </div>
+                <div class="col-2">
+                    <InputNumber type="text" class="form-control" id="@($"ingredientQty{ingredientModel.Id.ToString()}")" placeholder="0,00" @bind-Value="ingredientModel.Quantity" />
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-4">
+                <br />
+                <button type="submit" class="btn btn-primary">Salva</button>
+                <button type="reset" @onclick="ModalInstance.CancelAsync" class="btn btn-secondary">Annulla</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+
+@code {
+    bool hideFail = true;
+
+    string messages = string.Empty;
+    string imgSrc = string.Empty;
+
+    [Parameter]
+    public DessertModel Dessert { get; set; }
+
+    EditContext editContext;
+
+    [CascadingParameter]
+    BlazoredModalInstance ModalInstance { get; set; }
+
+    [CascadingParameter]
+    Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    AuthenticationState authState;
+
+    protected override async void OnInitialized()
+    {
+        authState = await AuthenticationStateTask;
+        editContext = new EditContext(Dessert);
+
+        imgSrc = Dessert.ImageFullPath;
+    }
+
+    async void HandleValidSubmit()
+    {
+        hideFail = await SaveForm();
+    }
+
+    async Task<bool> SaveForm()
+    {
+        bool isValid = editContext.Validate();
+
+        string uploadedFile = string.Empty;
+
+        if (!isValid)
+            return false;
+
+        if (Dessert.DessertId == 0)
+            if (PastryManagementService.AddDessert(Dessert) == null)
+                return false;
+
+        if (selectedFiles != null && selectedFiles.Count > 0)
+        {
+            uploadedFile = await uploadFiles();
+
+            if (string.IsNullOrWhiteSpace(uploadedFile))
+                return false;
+
+            Dessert.ImageFullPath = uploadedFile;
+        }
+
+        try
+        {
+            await PastryManagementService.SaveAsync();
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            messages = ex.Message;
+            return false;
+        }
+
+        await ModalInstance.CloseAsync(ModalResult.Ok(Dessert));
+        return true;
+    }
+
+    void AddEmptyIngredient() => Dessert.AddIngredient(new IngredientModel(new Ingredient()) { UserCreate = authState.User.Identity.Name });
+
+    void DeleteIngredient(IngredientModel ingredient) => Dessert.DeleteIngredient(ingredient);
+
+
+
+    //TODO: l'intera gestione di upload delle immagini andrebbe migliorata.
+    //Si potrebbe ad esempio gestire la conversione dei dati in base64 e memorizzare i dati nel DB.
+    IReadOnlyList<IBrowserFile> selectedFiles;
+
+    private async void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles(1);
+
+        if (selectedFiles == null || selectedFiles.Count == 0)
+            return;
+
+        #region base64
+        //System.IO.Stream stream = selectedFiles[0].OpenReadStream();
+        //System.IO.BinaryReader br = new System.IO.BinaryReader(stream);
+
+        ////Byte[] bytes = new byte[(Int32)stream.Length];
+
+        //Byte[] bytes = await Task<byte[]>.Run(() => br.ReadBytes((Int32)stream.Length));
+        //string base64String = Convert.ToBase64String(bytes, 0, bytes.Length);
+
+        //byte[] imageInBytes = await ReadToEnd(selectedFiles[0].OpenReadStream());
+        //string base64String = Convert.ToBase64String(imageInBytes);
+        //imgSrc = $"data:image/jpeg;base64, {base64String}";
+        #endregion
+
+        string newPath = await uploadFiles();
+
+
+
+        if (!string.IsNullOrWhiteSpace(newPath))
+        {
+            imgSrc = Dessert.ImageFullPath = newPath;
+            this.StateHasChanged();
+        }
+    }
+
+    private async Task<string> uploadFiles()
+    {
+        string returnValue = string.Empty;
+        string msg = string.Empty;
+
+        foreach (var file in selectedFiles)
+        {
+            string newFileName = string.Empty;
+            string newFileExt = string.Empty;
+            int lastDot = -1;
+
+            var backslashesPath = Configuration["Paths:Images:BackslashesPath"];
+            var SlashesPath = Configuration["Paths:Images:SlashesPath"];
+
+            string basePath = $"{env.WebRootPath}{backslashesPath}";
+            string srcPath = SlashesPath;
+
+            string fullPath = string.Empty;
+
+            if ((lastDot = file.Name.LastIndexOfAny(new char[] { '.' })) > 0)
+                newFileExt = string.Concat(file.Name.TakeLast(file.Name.Length - (lastDot + 1)));
+
+            while (true)
+            {
+                newFileName = Guid.NewGuid().ToString();
+
+                if (newFileExt.Length > 0)
+                    newFileName = $"{newFileName}.{newFileExt}";
+
+                fullPath = $"{basePath}{newFileName}";
+
+                if (!File.Exists(fullPath))
+                    break;
+            }
+
+            try
+            {
+                Stream stream = file.OpenReadStream();
+
+                FileStream fs = File.Create(fullPath);
+                await stream.CopyToAsync(fs);
+                stream.Close();
+                fs.Close();
+
+                returnValue = $"{srcPath}{newFileName}";
+            }
+            catch (Exception ex)
+            {
+                msg += $"{ex.Message}<br />";
+            }
+        }
+
+        msg += $"{selectedFiles.Count} file(s) uploaded on server";
+        return returnValue;
+    }
+}
