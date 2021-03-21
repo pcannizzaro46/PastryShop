@@ -9,7 +9,7 @@ Per lo sviluppo della soluzione software sono state usate le seguenti tecnologie
 - SQL Lite (development environment) e SQL Server (production environment).
 
 Per testare l’applicazione:
-- Installare, se necessario, .NET 5 SDK (Download .NET (Linux, macOS, and Windows) (microsoft.com)) 
+- Installare, se necessario, .NET 5 SDK; 
 - Aggiornare, se necessario, Visual Studio (almeno alla versione 16.9.1);
 - Aprire il file PastryShop.sln;
 - Eseguire, se necessario, l’eventuale ripristino di pacchetti NuGet;
